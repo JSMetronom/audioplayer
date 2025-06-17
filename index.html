@@ -1,0 +1,368 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metronom Player</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            --metronom-yellow: #ffcf35;
+            --metronom-blue: #004bae;
+        }
+        
+        body {
+            font-family: 'Fira Sans', sans-serif;
+            background-color: #f9fafb;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .progress {
+            height: 100%;
+            background: var(--metronom-blue);
+            border-radius: 3px;
+            transition: width 0.1s ease;
+        }
+        
+        .play-button {
+            transition: all 0.2s ease;
+            background-color: var(--metronom-yellow);
+        }
+        
+        .play-button:hover {
+            transform: scale(1.05);
+            background-color: #f0c020;
+        }
+        
+        .play-button:active {
+            transform: scale(0.95);
+        }
+        
+        .volume-slider {
+            -webkit-appearance: none;
+            height: 4px;
+            border-radius: 2px;
+            background: #e5e7eb;
+            outline: none;
+        }
+        
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--metronom-blue);
+            cursor: pointer;
+        }
+        
+        .volume-slider::-moz-range-thumb {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--metronom-blue);
+            cursor: pointer;
+            border: none;
+        }
+        
+        .player-container {
+            background-color: white;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .icon-bg {
+            background-color: rgba(0, 75, 174, 0.1);
+        }
+        
+        .icon-color {
+            color: var(--metronom-blue);
+        }
+        
+        .text-title {
+            color: var(--metronom-blue);
+        }
+        
+        .text-subtitle {
+            color: var(--metronom-blue);
+        }
+        
+        .button-icon {
+            color: var(--metronom-blue);
+        }
+        
+        .time-display {
+            color: var(--metronom-blue);
+        }
+        
+        .status-text {
+            color: var(--metronom-blue);
+        }
+        
+        audio {
+            display: none;
+        }
+        
+        @media (max-width: 640px) {
+            .player-container {
+                padding: 1rem;
+            }
+            
+            .volume-container {
+                width: 80px;
+            }
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="player-container w-full max-w-md rounded-xl shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="w-10 h-10 icon-bg rounded-lg flex items-center justify-center mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 icon-color" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-title leading-tight">Metronom Player</h3>
+                    <p class="text-xs text-subtitle font-medium">Metronom Durchsage</p>
+                </div>
+            </div>
+            <div class="text-sm font-medium time-display" id="duration">0:00 / 0:00</div>
+        </div>
+        
+        <div class="progress-bar mb-4" id="progress-bar">
+            <div class="progress" id="progress" style="width: 0%;"></div>
+        </div>
+        
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-4">
+                <button class="play-button text-gray-800 rounded-full w-12 h-12 flex items-center justify-center focus:outline-none" id="play-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" id="play-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 hidden" id="pause-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+                <button class="button-icon hover:opacity-80 focus:outline-none" id="restart-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="flex items-center volume-container">
+                <button id="mute-button" class="focus:outline-none mr-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 button-icon" id="volume-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 button-icon hidden" id="mute-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                    </svg>
+                </button>
+                <input type="range" min="0" max="1" step="0.01" value="0.8" class="volume-slider w-20 sm:w-24" id="volume-slider">
+            </div>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <p id="status-message" class="text-xs status-text">Loading audio...</p>
+        </div>
+    </div>
+    
+    <!-- Hidden audio element -->
+    <audio id="audioPlayer" preload="metadata">
+        <source src="https://www.dropbox.com/scl/fi/r2uaeo0vxul6x6rr29dro/Aufzeichnung.m4a?rlkey=7yjhl88b3tikmsdtzm9gooplk&st=lobpu66y&dl=1" type="audio/mp4">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const audioPlayer = document.getElementById('audioPlayer');
+            const playButton = document.getElementById('play-button');
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            const progressBar = document.getElementById('progress-bar');
+            const progress = document.getElementById('progress');
+            const volumeSlider = document.getElementById('volume-slider');
+            const muteButton = document.getElementById('mute-button');
+            const volumeIcon = document.getElementById('volume-icon');
+            const muteIcon = document.getElementById('mute-icon');
+            const restartButton = document.getElementById('restart-button');
+            const statusMessage = document.getElementById('status-message');
+            const durationDisplay = document.getElementById('duration');
+            
+            let progressInterval;
+            
+            // Initialize audio player
+            audioPlayer.volume = volumeSlider.value;
+            
+            // Audio events
+            audioPlayer.addEventListener('loadedmetadata', function() {
+                updateDurationDisplay();
+                statusMessage.textContent = 'Ready to play';
+            });
+            
+            audioPlayer.addEventListener('play', function() {
+                playIcon.classList.add('hidden');
+                pauseIcon.classList.remove('hidden');
+                statusMessage.textContent = 'Playing';
+                updateProgressBar();
+            });
+            
+            audioPlayer.addEventListener('pause', function() {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                statusMessage.textContent = 'Paused';
+                clearInterval(progressInterval);
+            });
+            
+            audioPlayer.addEventListener('ended', function() {
+                playIcon.classList.remove('hidden');
+                pauseIcon.classList.add('hidden');
+                statusMessage.textContent = 'Ended';
+                progress.style.width = '100%';
+                clearInterval(progressInterval);
+            });
+            
+            audioPlayer.addEventListener('timeupdate', function() {
+                const percentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                progress.style.width = percentage + '%';
+                updateTimeDisplay();
+            });
+            
+            audioPlayer.addEventListener('waiting', function() {
+                statusMessage.textContent = 'Buffering...';
+            });
+            
+            audioPlayer.addEventListener('error', function() {
+                statusMessage.textContent = 'Error loading audio';
+                console.error('Audio error:', audioPlayer.error);
+            });
+            
+            // Play/Pause button
+            playButton.addEventListener('click', function() {
+                if (audioPlayer.paused) {
+                    const playPromise = audioPlayer.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.then(_ => {
+                            // Playback started successfully
+                        }).catch(error => {
+                            // Auto-play was prevented
+                            console.error('Playback error:', error);
+                            statusMessage.textContent = 'Click again to play';
+                        });
+                    }
+                } else {
+                    audioPlayer.pause();
+                }
+            });
+            
+            // Progress bar click
+            progressBar.addEventListener('click', function(e) {
+                const rect = progressBar.getBoundingClientRect();
+                const pos = (e.clientX - rect.left) / rect.width;
+                audioPlayer.currentTime = pos * audioPlayer.duration;
+            });
+            
+            // Volume slider
+            volumeSlider.addEventListener('input', function() {
+                audioPlayer.volume = this.value;
+                
+                // Update volume icon
+                if (parseFloat(this.value) === 0) {
+                    volumeIcon.classList.add('hidden');
+                    muteIcon.classList.remove('hidden');
+                } else {
+                    volumeIcon.classList.remove('hidden');
+                    muteIcon.classList.add('hidden');
+                }
+            });
+            
+            // Mute button
+            muteButton.addEventListener('click', function() {
+                audioPlayer.muted = !audioPlayer.muted;
+                
+                if (audioPlayer.muted) {
+                    volumeIcon.classList.add('hidden');
+                    muteIcon.classList.remove('hidden');
+                } else {
+                    volumeIcon.classList.remove('hidden');
+                    muteIcon.classList.add('hidden');
+                }
+            });
+            
+            // Restart button
+            restartButton.addEventListener('click', function() {
+                audioPlayer.currentTime = 0;
+                audioPlayer.play();
+            });
+            
+            // Helper functions
+            function updateProgressBar() {
+                clearInterval(progressInterval);
+                
+                progressInterval = setInterval(function() {
+                    if (audioPlayer.paused) {
+                        clearInterval(progressInterval);
+                        return;
+                    }
+                    
+                    const percentage = (audioPlayer.currentTime / audioPlayer.duration) * 100;
+                    progress.style.width = percentage + '%';
+                    updateTimeDisplay();
+                }, 500);
+            }
+            
+            function updateTimeDisplay() {
+                const currentTime = audioPlayer.currentTime;
+                const duration = audioPlayer.duration;
+                
+                const currentMinutes = Math.floor(currentTime / 60);
+                const currentSeconds = Math.floor(currentTime % 60);
+                const formattedCurrentTime = currentMinutes + ':' + (currentSeconds < 10 ? '0' : '') + currentSeconds;
+                
+                const totalMinutes = Math.floor(duration / 60);
+                const totalSeconds = Math.floor(duration % 60);
+                const formattedTotalTime = totalMinutes + ':' + (totalSeconds < 10 ? '0' : '') + totalSeconds;
+                
+                durationDisplay.textContent = formattedCurrentTime + ' / ' + formattedTotalTime;
+            }
+            
+            function updateDurationDisplay() {
+                const duration = audioPlayer.duration;
+                
+                if (isNaN(duration)) {
+                    setTimeout(updateDurationDisplay, 100);
+                    return;
+                }
+                
+                const totalMinutes = Math.floor(duration / 60);
+                const totalSeconds = Math.floor(duration % 60);
+                const formattedTotalTime = totalMinutes + ':' + (totalSeconds < 10 ? '0' : '') + totalSeconds;
+                
+                durationDisplay.textContent = '0:00 / ' + formattedTotalTime;
+            }
+            
+            // Handle potential loading issues
+            setTimeout(function() {
+                if (audioPlayer.readyState === 0) {
+                    statusMessage.textContent = 'Loading taking longer than expected...';
+                }
+            }, 5000);
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9511cddac5cbbba3',t:'MTc1MDE1NTUxOS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
